@@ -1,15 +1,12 @@
 --[[
 Author: Ayantir
 Filename: SuperStar.lua
-Version: 2.5
-
-Add real stats vision
-
+Version: 2.6
 ]]--
 
 -- Init SuperStar variables
 local SuperStar = {}
-SuperStarSkills = ZO_Object:Subclass()
+local SuperStarSkills = ZO_Object:Subclass()
 local ADDON_NAME = "SuperStar"
 
 local TAG_ATTRIBUTES = "#"
@@ -30,7 +27,7 @@ local actionBarConfig = {}
 local ChampionParser = {}
 local SkillParser = {}
 
-local RespecInProgress
+local skillsDataForRespec
 local SetTitle
 
 local xmlIncludeAttributes = true
@@ -87,6 +84,7 @@ local SP_MAX_SPENDABLE_POINTS = 400
 local CP_MAX_SPENDABLE_POINTS = 100 -- Per skill
 
 local MAX_PLAYABLE_RACES = 10
+local SKILLTYPES_IN_SKILLBUILDER = 8
 
 local FODD_BUFF_NONE = 0
 local FODD_BUFF_MAX_HEALTH = 1
@@ -146,6 +144,7 @@ local SUPERSTAR_FAVORITES_WINDOW
 local favoritesManager
 local isFavoriteShown = false
 local favoriteLocked = false
+local isFavoriteHaveSP = false
 local virtualFavorite = "$" .. GetUnitName("player")
 
 local db
@@ -732,7 +731,7 @@ end
 function SuperStarSkills:InitInternalFactoryForBuilder()
 
 	SuperStarSkills.builderFactory = {}
-	for skillType = 1, 8 do
+	for skillType = 1, SKILLTYPES_IN_SKILLBUILDER do
 		SuperStarSkills.builderFactory[skillType] = {}
 		for skillLineIndex = 1, LSF:GetNumSkillLines(skillType) do
 			SuperStarSkills.builderFactory[skillType][skillLineIndex] = {}
@@ -782,7 +781,7 @@ function SuperStarSkills:GetAvailableSkillPoints()
 	local skillPoints = 0
 	
 	-- SkillTypes (class, etc)
-	for skillType=1, 8 do
+	for skillType=1, SKILLTYPES_IN_SKILLBUILDER do
 		
 		-- SkillLine (Bow, etc)
 		for skillLineIndex=1, GetNumSkillLines(skillType) do
@@ -1038,7 +1037,7 @@ function SuperStarSkills:Refresh()
 	end
 
 	SUPERSTAR_SKILLS_WINDOW.navigationTree:Reset()
-	for skillType = 1, 8 do
+	for skillType = 1, SKILLTYPES_IN_SKILLBUILDER do
 		local numSkillLines = LSF:GetNumSkillLines(skillType)
 		if numSkillLines > 0 then
 			local parent = SUPERSTAR_SKILLS_WINDOW.navigationTree:AddNode("ZO_IconHeader", skillType, nil, skillTypeToSound[skillType])
@@ -1514,582 +1513,11 @@ local function InitSkills(control)
 	SUPERSTAR_SKILLS_WINDOW = SuperStarSkills:New(control)
 end
 
-function SuperStar.chooseRespectType()
-
-	if SuperStar.hashForBuild and not SuperStar.skillHashForBuild then
-		ZO_Dialogs_ShowDialog("SUPERSTAR_CONFIRM_COST")
-	elseif not SuperStar.hashForBuild and SuperStar.skillHashForBuild then
-		ZO_Dialogs_ShowDialog("SUPERSTAR_CONFIRM_SPRESPEC")
-	end
-
-end
-
-function SuperStar.respec()
-	
-	if GetCurrentMoney() > GetChampionRespecCost() then
-	
-		RespecInProgress = true
-		local hash = SuperStar.hashForBuild
-		
-		SuperStar.parseHashMethod1(hash)
-		
-		-- Constellations
-		for i=1, 9 do
-		
-			-- Stars
-			for j=1, 4 do
-				
-				if ChampionParser.constellations[i].stars[j] > 0 then
-					SetNumPendingChampionPoints(i, j, ChampionParser.constellations[i].stars[j])
-				end
-				
-			end
-			
-		end
-		
-		
-		local respecNeeded = IsChampionRespecNeeded()
-		local confirmationSound
-		-- Will trigger EVENT_CHAMPION_PURCHASE_RESULT
-		if SpendPendingChampionPoints(respecNeeded) then
-			if respecNeeded then
-				confirmationSound = SOUNDS.CHAMPION_RESPEC_ACCEPT
-			else
-				confirmationSound = SOUNDS.CHAMPION_POINTS_COMMITTED
-				d("Your Champion points has been respec. Please note that because you don't have to change your points, your respec was free of charge.")
-			end
-			self.awaitingSpendPointsResponse = true
-		end
-		
-		-- Hide SuperStar
-		LMM:ToggleCategory(MENU_CATEGORY_SUPERSTAR)
-		
-		-- ESOUI got 1s to trigger (it's generally done in 10ms)
-		zo_callLater(function(confirmationSound) SuperStar.changeInProgressFlag(confirmationSound) end, 500)
-		
-	else
-		-- error money
-	end
-
-end
-
-local SUPERSTAR_NOWARNING = 0
-local SUPERSTAR_INVALID_CLASS = 1
-local SUPERSTAR_NOT_ENOUGHT_SP = 2
-local SUPERSTAR_INVALID_RACE = 4
-local SUPERSTAR_REQ_LEGERDEMAIN_BUTNOTFOUND = 8
-local SUPERSTAR_REQ_VAMPIRE_BUTNOTFOUND = 16
-local SUPERSTAR_REQ_WEREWOLF_BUTNOTFOUND = 32
-
-function SuperStar.respecSkills()
-
-	local hash = SuperStar.skillHashForBuild
-	SuperStar.parseSkillHashMethod1(hash)
-	
-	if GetAvailableSkillPoints() > SkillParser.totalPointsSpent then
-	
-		RespecInProgress = true
-		
-		-- Show SuperStar Import Scene
-		LSF:InitSkillFactory(SkillParser.classId, SkillParser.raceId)
-		SuperStarSkills.builderFactory = SkillParser
-		
-		local doRespec, returnCode = SuperStar.checkSPrespec()
-		
-		if doRespec then
-			
-			-- Hide SuperStar
-			LMM:ToggleCategory(MENU_CATEGORY_SUPERSTAR)
-			
-			local noRace = false
-			if returnCode > SUPERSTAR_NOWARNING then
-				
-				if returnCode >= SUPERSTAR_REQ_WEREWOLF_BUTNOTFOUND then
-					d(SuperStar.lang.respecSPError[SUPERSTAR_REQ_WEREWOLF_BUTNOTFOUND])
-					returnCode = returnCode - SUPERSTAR_REQ_WEREWOLF_BUTNOTFOUND
-				end
-				
-				if returnCode >= SUPERSTAR_REQ_VAMPIRE_BUTNOTFOUND then
-					d(SuperStar.lang.respecSPError[SUPERSTAR_REQ_VAMPIRE_BUTNOTFOUND])
-					returnCode = returnCode - SUPERSTAR_REQ_VAMPIRE_BUTNOTFOUND
-				end
-				
-				if returnCode >= SUPERSTAR_REQ_LEGERDEMAIN_BUTNOTFOUND then
-					d(SuperStar.lang.respecSPError[SUPERSTAR_REQ_LEGERDEMAIN_BUTNOTFOUND])
-					returnCode = returnCode - SUPERSTAR_REQ_LEGERDEMAIN_BUTNOTFOUND
-				end
-				
-				if returnCode >= SUPERSTAR_INVALID_RACE then
-					d(SuperStar.lang.respecSPError[SUPERSTAR_INVALID_RACE])
-					returnCode = returnCode - SUPERSTAR_INVALID_RACE
-					noRace = true
-				end
-				
-			end
-			
-			SuperStar.initiateSPRespec(SkillParser.totalPointsSpent)
-			
-			-- Set a point send a message to server, capped at 100, will need to send 300 messages .. so a 200ms pause between each point. Setting 300 points will take ~ 1min30
-			SuperStar.respecSkillsSpendPoints(1, 1, 1, 0, noRace)
-		else
-			SuperStarXMLFavorites:GetNamedChild("Warning"):SetText(SuperStar.lang.respecSPError[returnCode])
-		end
-		
-	else
-		-- SP error
-	end
-
-end
-
-function SuperStar.respecSkillsSpendPoints(skillType, skillLineIndex, abilityIndex, totalPointSet, noRace)
-	
-	local function goForward(skillType, skillLineIndex, abilityIndex, noRace)
-	
-		if abilityIndex + 1 > GetNumSkillAbilities(skillType, skillLineIndex) then
-			abilityIndex = 1
-			skillLineIndex = skillLineIndex + 1
-		else
-			abilityIndex = abilityIndex + 1
-		end
-		
-		if skillLineIndex > GetNumSkillLines(skillType) then
-			abilityIndex = 1
-			skillLineIndex = 1
-			skillType = skillType + 1
-			SuperStar.announceSPRespecProgress(skillType - 1)
-		end
-		
-		return skillType, skillLineIndex, abilityIndex, noRace
-	
-	end
-	
-	if totalPointSet < SP_MAX_SPENDABLE_POINTS then
-		if skillType <= 8 then
-			if (noRace) and skillType == SKILL_TYPE_RACIAL then
-				--d("Don't set racials")
-				skillType, skillLineIndex, abilityIndex, noRace = goForward(SKILL_TYPE_RACIAL, 9, 9, totalPointSet, noRace)
-			end
-			local numSkillLines = LSF:GetNumSkillLines(skillType)
-			if numSkillLines > 0 and skillLineIndex <= numSkillLines then
-				
-				local numAbilities = SuperStarSkills:GetNumSkillAbilitiesForBuilder(skillType, skillLineIndex)
-				
-				-- New skills ?
-				if numAbilities == GetNumSkillAbilities(skillType, skillLineIndex) then
-					if abilityIndex <= numAbilities then
-						
-						--d("Checking Ability " .. abilityIndex)
-						local name, texture, earnedRank, passive, ultimate, purchased, progressionIndex = GetSkillAbilityInfo(skillType, skillLineIndex, abilityIndex)
-						local exception = SuperStarSkills:ConvertExceptionsPointsSpentInAbility(skillType, skillLineIndex, abilityIndex, true)
-						local spentIn = SuperStarSkills.builderFactory[skillType][skillLineIndex][abilityIndex].spentIn
-						local abilityLevel = SuperStarSkills.builderFactory[skillType][skillLineIndex][abilityIndex].abilityLevel
-						local _, actualSkillRank = GetSkillLineInfo(skillType, skillLineIndex)
-						
-						-- Don't buy 1st point if granted
-						if (not purchased) and (not exception) and spentIn > 0 then
-							
-							--d("Not Purchased")
-							-- take it
-							if earnedRank <= actualSkillRank then
-								--d("Not Purchased and ok !")
-								PutPointIntoSkillAbility(skillType, skillLineIndex, abilityIndex)
-								totalPointSet = totalPointSet + 1
-							else
-								skillType, skillLineIndex, abilityIndex, noRace = goForward(skillType, skillLineIndex, abilityIndex, noRace)
-							end
-							
-							--d("Calling with args :" .. skillType .. ";" .. skillLineIndex .. ";" .. abilityIndex .. ";" .. totalPointSet)
-							zo_callLater(function() SuperStar.respecSkillsSpendPoints(skillType, skillLineIndex, abilityIndex, totalPointSet, noRace) end, 200)
-							
-							return
-							
-						elseif purchased and spentIn > 1 then
-							
-							--d("Purchased")
-							
-							if passive then
-								
-								--d("Passive")
-								
-								local currentUpgradeLevel, maxUpgradeLevel = GetSkillAbilityUpgradeInfo(skillType, skillLineIndex, abilityIndex)
-								local _, _, upgradeEarningRank = GetSkillAbilityNextUpgradeInfo(skillType, skillLineIndex, abilityIndex)
-								if spentIn <= maxUpgradeLevel and spentIn > currentUpgradeLevel then
-									
-									if upgradeEarningRank <= actualSkillRank then
-										--d("Purchased and ok !")
-										PutPointIntoSkillAbility(skillType, skillLineIndex, abilityIndex, true)
-										totalPointSet = totalPointSet + 1
-										
-										if spentIn == currentUpgradeLevel + 1 then
-											skillType, skillLineIndex, abilityIndex = goForward(skillType, skillLineIndex, abilityIndex, noRace)
-										end
-									else
-										skillType, skillLineIndex, abilityIndex = goForward(skillType, skillLineIndex, abilityIndex, noRace)
-									end
-									
-									--d("Calling with args :" .. skillType .. ";" .. skillLineIndex .. ";" .. abilityIndex .. ";" .. totalPointSet)
-									zo_callLater(function() SuperStar.respecSkillsSpendPoints(skillType, skillLineIndex, abilityIndex, totalPointSet, noRace) end, 200)
-									
-									return
-								end
-							else
-								
-								--d("Active/Ultimate")
-								
-								if abilityLevel == 1 or abilityLevel == 2 then
-								
-									ChooseAbilityProgressionMorph(progressionIndex, abilityLevel)
-									totalPointSet = totalPointSet + 1
-									
-									skillType, skillLineIndex, abilityIndex = goForward(skillType, skillLineIndex, abilityIndex, noRace)
-									
-									--d("Calling with args :" .. skillType .. ";" .. skillLineIndex .. ";" .. abilityIndex .. ";" .. totalPointSet)
-									zo_callLater(function() SuperStar.respecSkillsSpendPoints(skillType, skillLineIndex, abilityIndex, totalPointSet, noRace) end, 200)
-									
-									return
-								
-								end
-							end
-						else
-						
-							skillType, skillLineIndex, abilityIndex = goForward(skillType, skillLineIndex, abilityIndex, noRace)
-							
-							--d("Calling with args :" .. skillType .. ";" .. skillLineIndex .. ";" .. abilityIndex .. ";" .. totalPointSet)
-							zo_callLater(function() SuperStar.respecSkillsSpendPoints(skillType, skillLineIndex, abilityIndex, totalPointSet, noRace) end, 1)
-							
-							return
-							
-						end
-					end
-				else
-					
-					-- Test if SkillLine was removed
-					
-					local numAbilities = SuperStarSkills:GetNumSkillAbilitiesForBuilder(skillType, skillLineIndex + 1)
-					
-					-- New skills ?
-					if numAbilities == GetNumSkillAbilities(skillType, skillLineIndex) then
-						-- Inject skillLineIndex+1 from Builder into skillLineIndex array.
-						--d("Injection")
-						SuperStarSkills.builderFactory[skillType][skillLineIndex] = SuperStarSkills.builderFactory[skillType][skillLineIndex + 1]
-					elseif skillLineIndex + 1 > GetNumSkillLines(skillType) then
-						abilityIndex = 1
-						skillLineIndex = 1
-						skillType = skillType + 1
-						SuperStar.announceSPRespecProgress(skillType - 1)
-					end
-
-					--d("Calling with args :" .. skillType .. ";" .. skillLineIndex .. ";" .. abilityIndex .. ";" .. totalPointSet)
-					zo_callLater(function() SuperStar.respecSkillsSpendPoints(skillType, skillLineIndex, abilityIndex, totalPointSet, noRace) end, 10)
-					
-					return
-					
-				end
-			end
-		end
-		
-		zo_callLater(function() SuperStar.announceSPRespec(totalPointSet) end, 500)
-	
-	end
-	
-end
-
-function SuperStar.checkSPrespec()
-
-	-- Todo: Guilds, Soul Magic
-	
-	local letsGo = false
-	local returnCode = SUPERSTAR_NOWARNING
-	
-	-- blocked
-	if GetUnitClassId("player") ~= SuperStarSkills.builderFactory.classId then
-		returnCode = SUPERSTAR_INVALID_CLASS
-		return letsGo, returnCode
-	end
-	
-	-- blocked
-	if GetAvailableSkillPoints() < SuperStarSkills.builderFactory.totalPointsSpent then
-		returnCode = SUPERSTAR_NOT_ENOUGHT_SP
-		return letsGo, returnCode
-	end
-	
-	letsGo = true
-	
-	--authorized
-	if GetUnitRaceId("player") ~= SuperStarSkills.builderFactory.raceId then
-		returnCode = SUPERSTAR_INVALID_RACE
-	end
-	
-	--authorized
-	if SuperStarSkills.builderFactory.requireLegerdemain then
-	
-		local legerdemainFound = false
-		for i=1, GetNumSkillLines(SKILL_TYPE_WORLD) do
-			local name = GetSkillLineInfo(SKILL_TYPE_WORLD, i)
-			if name == "Escroquerie" or name == "Legerdemain" or name == "Lug und Trug" then
-				legerdemainFound = true
-			end
-		end
-		
-		if (not legerdemainFound) then
-			returnCode = returnCode + SUPERSTAR_REQ_LEGERDEMAIN_BUTNOTFOUND
-		end
-		
-	end
-	
-	--authorized
-	if SuperStarSkills.builderFactory.requireVampire then
-		
-		local vampirismFound = false
-		for i = 1, GetNumBuffs("player") do
-			local _, _, _, _, _, iconFilename, _, _, _, _ = GetUnitBuffInfo("player", i)
-			if string.find(iconFilename, "ability_vampire_007") then
-				vampirismFound = true
-				break
-			end
-		end
-
-		if (not vampirismFound) then
-			returnCode = returnCode + SUPERSTAR_REQ_VAMPIRE_BUTNOTFOUND
-			--d("Warning: This build has Vampirism skills set, but you don't seem to be a Vampire. Vampire points wont be set.")
-		end
-		
-	end
-	
-	--authorized
-	if SuperStarSkills.builderFactory.requireWereWolf and (not IsWerewolf()) then
-		returnCode = returnCode + SUPERSTAR_REQ_WEREWOLF_BUTNOTFOUND
-		--d("Warning: This build has WereWolf skills set, but you don't seem to be a WereWolf. WereWolf points wont be set.")
-	end
-	
-	return letsGo, returnCode
-		
-end
-
-function SuperStar.changeInProgressFlag(soundToPlay)
-
-	RespecInProgress = false
-	CENTER_SCREEN_ANNOUNCE:AddMessage(999, CSA_EVENT_LARGE_TEXT, soundToPlay, GetString(SUPERSTAR_CSA_RESPECDONE_TITLE), nil, nil, nil, nil, nil)
-	
-end
-
-function SuperStar.announceSPRespec(totalPointSet)
-
-	CENTER_SCREEN_ANNOUNCE:AddMessage(999, CSA_EVENT_COMBINED_TEXT, SOUNDS.LEVEL_UP, GetString(SUPERSTAR_CSA_RESPECDONE_LONG), zo_strformat(SUPERSTAR_CSA_RESPECDONE_POINTS, totalPointSet), nil, nil, nil, nil)
-	
-end
-
-function SuperStar.announceSPRespecProgress(skillType)
-	CENTER_SCREEN_ANNOUNCE:AddMessage(999, CSA_EVENT_SMALL_TEXT, SOUNDS.QUEST_OBJECTIVE_COMPLETE, GetString("SUPERSTAR_RESPEC_INPROGRESS", skillType), nil, nil, nil, nil, nil)
-end
-
-function SuperStar.initiateSPRespec(totalPointSet)
-	
-	local minutes
-	if totalPointSet < 100 then
-		minutes = 1
-	elseif totalPointSet < 200 then
-		minutes = 2
-	elseif totalPointSet < 300 then
-		minutes = 2
-	else
-		minutes = 4
-	end
-	
-	CENTER_SCREEN_ANNOUNCE:AddMessage(999, CSA_EVENT_COMBINED_TEXT, SOUNDS.CHAMPION_WINDOW_OPENED, GetString(SUPERSTAR_CSA_RESPEC_INPROGRESS), zo_strformat(SUPERSTAR_CSA_RESPEC_TIME, minutes), nil, nil, nil, nil)
-	
-end
-
--- Will trigger an error if executed by SuperStar
-function CHAMPION_PERKS:OnChampionPurchaseResult(result)
-
-	if not RespecInProgress then
-
-		self.awaitingSpendPointsResponse = false
-
-		if result == CHAMPION_PURCHASE_SUCCESS then
-			--depends on the pending points and respec mode not being reset yet
-			self:PlayStarConfirmAnimations()
-		end
-
-		SetChampionIsInRespecMode(false)
-		self:ResetPendingPoints()
-		self:RefreshConstellationSpentPoints()
-
-		--depends on pending and spent points being updated
-		self:RefreshConstellationStarStates()
-
-		self:RefreshUnspentPoints()
-		self:RefreshAvailablePointDisplays()
-		self:RefreshChosenConstellationInfo()
-		self:RefreshMenuIndicators()
-		KEYBIND_STRIP:UpdateKeybindButtonGroup(self.sharedKeybindStripDescriptor)
-		
-	end
-	
-end
-
--- Will trigger a call to insecure code if in Gamepad mode. So avoid run gamepad code while on keyboard (cannot do anything)
-function CHAMPION_PERKS:RefreshMenuIndicators()
-	if IsInGamepadPreferredMode() then
-		MAIN_MENU_GAMEPAD:RefreshLists()
-	end
-	if not IsConsoleUI() then
-		MAIN_MENU_KEYBOARD:RefreshCategoryIndicators()
-	end
-end
-
-function SuperStar.switchBuild(control)
-
-	local controlID = string.sub(control:GetName(), -1)
-	controlID = tonumber(controlID)
-	if controlID == 0 then controlID = 10 end
-	
-	local hash, cp, name, isCPbuild, isSPbuild, sp
-	
-	if db.favorites[controlID] then
-		hash = db.favorites[controlID].hash
-		name = db.favorites[controlID].name
-		
-		if db.favorites[controlID].cp then
-			cp = db.favorites[controlID].cp
-			isCPbuild = true
-			
-			-- Check Version
-			local checkVersion = string.sub(hash, 1, 1)
-			if checkVersion ~= ChampionHashVersion then
-				d("You're trying to respec using an old template. Please first update your template with the last Champion System builder in order to check points that may be changed. Click on *UPPERARROW*, check your points, then click on *STAR* again")
-				return
-			end
-			
-			-- Check Mode
-			local checkMode = string.sub(hash, 2, 2)
-			if checkMode ~= ChampionMode then return end
-
-			
-		elseif db.favorites[controlID].sp then
-			sp = db.favorites[controlID].sp
-			isSPbuild = true
-			
-			-- Check Version
-			local checkVersion = string.sub(hash, 1, 1)
-			if checkVersion ~= SkillHashCode then
-				d("You're trying to respec using an old template. Please first update your template with the last skill builder in order to check skills that may be changed. Click on *UPPERARROW*, check your skills, then click on *STAR* again")
-				return
-			end
-			
-			-- Check Mode
-			local checkMode = string.sub(hash, 2, 2)
-			if checkMode ~= SkillHashMode then return end
-			
-		end
-		
-	end
-	
-	-- Show SuperStar Build Scene
-	LMM:Update(MENU_CATEGORY_SUPERSTAR, "SuperStarBuild")
-	
-	if isCPbuild then
-	
-		SuperStar.parseHashMethod1(hash)
-		SuperStar.hashForBuild = hash
-		SuperStar.skillHashForBuild = nil
-	
-		SuperStarXMLBuild:GetNamedChild("Title"):SetText(GetString(SI_CHAMPION_DIALOG_ENTER_RESPEC_TITLE))
-		
-		local icon = "|t16:16:EsoUI/Art/currency/currency_gold.dds|t"
-		local championRespecCost = zo_strformat(SI_CHAMPION_RESPEC_CURRENCY_FORMAT, ZO_CommaDelimitNumber(GetChampionRespecCost()), icon)
-		
-		SuperStarXMLBuild:GetNamedChild("Warning"):SetText(zo_strformat(SuperStar.lang.respecWarning, championRespecCost))
-		
-		SuperStarXMLBuild:GetNamedChild("NewBuildName"):SetText(name)
-		SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetText(cp .. " CP")
-		
-		if cp > GetPlayerChampionPointsEarned() then
-			SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetColor(1, 0, 0, 1)
-			SuperStarXMLBuild:GetNamedChild("Respec"):SetHidden(true)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetHidden(false)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetText(SuperStar.lang.newBuildErrNotEnoughtCP)
-		elseif GetCurrentMoney() < GetChampionRespecCost() then
-			SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetColor(1, 0, 0, 1)
-			SuperStarXMLBuild:GetNamedChild("Respec"):SetHidden(true)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetHidden(false)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetText(SuperStar.lang.newBuildErrNotEnoughtGold)
-		else
-			SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetColor(1, 1, 1, 1)
-			SuperStarXMLBuild:GetNamedChild("Respec"):SetHidden(false)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetHidden(true)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetText("")
-		end
-		
-		SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetText(SuperStarXMLFavorites:GetNamedChild("FavCP" .. controlID):GetText())
-		
-		SuperStarXMLBuild:GetNamedChild("NewBuild"):SetHidden(false)
-		SuperStarXMLBuild:GetNamedChild("NewBuildName"):SetHidden(false)
-		SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetHidden(false)
-		SuperStarXMLBuild:GetNamedChild("NewBuildSummary"):SetHidden(false)
-		SuperStarXMLBuild:GetNamedChild("NewBuildExport"):SetHidden(false)
-		
-	elseif isSPbuild then
-	
-		SuperStar.parseSkillHashMethod1(hash)
-		SuperStar.hashForBuild = nil
-		SuperStar.skillHashForBuild = hash
-	
-		SuperStarXMLBuild:GetNamedChild("Title"):SetText(GetString(SI_CHAMPION_DIALOG_ENTER_RESPEC_TITLE))
-		
-		local respecCost = SkillParser.totalPointsSpent
-		SuperStarXMLBuild:GetNamedChild("Warning"):SetText(zo_strformat(SuperStar.lang.respecSPWarning, respecCost))
-		
-		SuperStarXMLBuild:GetNamedChild("NewBuildName"):SetText(name)
-		SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetText(sp .. " SP")
-		
-		if sp > GetAvailableSkillPoints() then
-			SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetColor(1, 0, 0, 1)
-			SuperStarXMLBuild:GetNamedChild("Respec"):SetHidden(true)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetHidden(false)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetText(SuperStar.lang.newBuildErrNotEnoughtSP)
-		else
-			SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetColor(1, 1, 1, 1)
-			SuperStarXMLBuild:GetNamedChild("Respec"):SetHidden(false)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetHidden(true)
-			SuperStarXMLBuild:GetNamedChild("NewBuildError"):SetText("")
-		end
-		
-		SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetText(SuperStarXMLFavorites:GetNamedChild("FavCP" .. controlID):GetText())
-		
-		SuperStarXMLBuild:GetNamedChild("NewBuild"):SetHidden(false)
-		SuperStarXMLBuild:GetNamedChild("NewBuildName"):SetHidden(false)
-		SuperStarXMLBuild:GetNamedChild("NewBuildCP"):SetHidden(false)
-		SuperStarXMLBuild:GetNamedChild("NewBuildExport"):SetHidden(false)
-		
-	end
-	
-	
-end
-
-function SuperStar.initParser()
-
-	ChampionParser.constellations = {}
-	
-	for i=1, 9 do
-		ChampionParser.constellations[i] = {}
-		ChampionParser.constellations[i].stars = {}
-		for j=1, 8 do
-			ChampionParser.constellations[i].stars[j] = 0
-		end
-		ChampionParser.constellations[i].total = 0
-	end
-	
-	ChampionParser.total = 0
-
-end
-
 local function InitSkillParser()
 
 	local skillParser = {}
 	
-	for skillType = 1, 8 do
+	for skillType = 1, SKILLTYPES_IN_SKILLBUILDER do
 		skillParser[skillType] = {}
 		for skillLineIndex = 1, LSF:GetNumSkillLines(skillType) do
 			skillParser[skillType][skillLineIndex] = {}
@@ -2098,7 +1526,7 @@ local function InitSkillParser()
 				
 				if SuperStarSkills:GetActiveSkillsExceptionsPointsSpentInAbilityForBuilder(skillType, skillLineIndex, abilityIndex) == 1 then
 					skillParser[skillType][skillLineIndex][abilityIndex].spentIn = 1
-					skillParser[skillType][skillLineIndex][abilityIndex].abilityLevel = 0
+					skillParser[skillType][skillLineIndex][abilityIndex].abilityLevel = ABILITY_LEVEL_NONMORPHED
 				else
 					skillParser[skillType][skillLineIndex][abilityIndex].spentIn = SuperStarSkills:GetExceptionsPointsSpentInAbilityForBuilder(skillType, skillLineIndex, abilityIndex)
 					skillParser[skillType][skillLineIndex][abilityIndex].abilityLevel = SuperStarSkills:GetExceptionsPointsSpentInAbilityForBuilder(skillType, skillLineIndex, abilityIndex)
@@ -2110,107 +1538,6 @@ local function InitSkillParser()
 	
 	return skillParser
 
-end
-
-function SuperStar.GetSkillTypeAndLineFromBlockDef(decimalBlock)
-	
-	local skillType, skillLineIndex
-	
-	if decimalBlock >= 32 and decimalBlock <= 34 then
-		skillType = SKILL_TYPE_CLASS
-		skillLineIndex = decimalBlock - 31
-	end
-	if decimalBlock >= 35 and decimalBlock <= 40 then
-		skillType = SKILL_TYPE_WEAPON
-		skillLineIndex = decimalBlock - 34
-	end
-	if decimalBlock >= 41 and decimalBlock <= 43 then
-		skillType = SKILL_TYPE_ARMOR
-		skillLineIndex = decimalBlock - 40
-	end
-	if decimalBlock >= 44 and decimalBlock <= 47 then
-		skillType = SKILL_TYPE_WORLD
-		skillLineIndex = decimalBlock - 43
-	end
-	if decimalBlock >= 48 and decimalBlock <= 50 then
-		skillType = SKILL_TYPE_GUILD
-		skillLineIndex = decimalBlock - 47
-	end
-	if decimalBlock >= 51 and decimalBlock <= 53 then
-		skillType = SKILL_TYPE_AVA
-		skillLineIndex = decimalBlock - 50
-	end
-	if decimalBlock == 54 then
-		skillType = SKILL_TYPE_RACIAL
-		skillLineIndex = decimalBlock - 53
-	end
-	if decimalBlock >= 55 and decimalBlock <= 60 then
-		skillType = SKILL_TYPE_TRADESKILL
-		skillLineIndex = decimalBlock - 54
-	end
-	
-	return skillType, skillLineIndex
-
-end
-
-function SuperStar.exportBuild(control)
-	
-	local hash
-	local sp = false
-	
-	-- Export from main tab
-	if control:GetName() == "SuperStarXMLMainExport" then
-		hash = SuperStar.myCharHash
-		SuperStar.exportTitle = GetUnitName("player")
-	-- Export from New build tab
-	elseif control:GetName() == "SuperStarXMLBuildNewBuildExport" then
-		
-		if SuperStar.hashForBuild and not SuperStar.skillHashForBuild then
-			hash = SuperStar.hashForBuild
-			SuperStar.exportTitle = SuperStarXMLBuild:GetNamedChild("NewBuildName"):GetText()
-		elseif not SuperStar.hashForBuild and SuperStar.skillHashForBuild then
-			hash = SuperStar.skillHashForBuild
-			SuperStar.exportTitle = SuperStarXMLBuild:GetNamedChild("NewBuildName"):GetText()
-			sp = true
-		end
-		
-	else
-		
-		-- Export from favorites tab
-		local controlID = string.sub(control:GetName(), -1)
-		controlID = tonumber(controlID)
-		if controlID == 0 then controlID = 10 end
-		
-		if db.favorites[controlID] then
-			hash = db.favorites[controlID].hash
-			SuperStar.exportTitle = SuperStarXMLFavorites:GetNamedChild("FavName" .. controlID):GetText()
-			
-			-- Is a CP or a SP build ?
-			if db.favorites[controlID].sp then
-				sp = true
-			end
-			
-		else
-			hash = SuperStar.hash
-			SuperStar.exportTitle = SuperStar.lang.exportedBuildTitle
-		end
-		
-	end
-	
-	if hash ~= nil then
-		if CHAT_SYSTEM.textEntry:GetText() == "" then
-			if sp then
-				TheoryCrafters(hash)
-				CHAT_SYSTEM.textEntry:Open("/script TheoryCrafters(\"" .. hash .. "\")")
-			else
-				SetTitle = true
-				ChampionsCrafters(hash)
-				CHAT_SYSTEM.textEntry:Open("/script ChampionsCrafters(\"" .. hash .. "\")")
-			end
-			ZO_ChatWindowTextEntryEditBox:SelectAll()
-		end
-	end
-	
 end
 
 local function FormatOn2BytesInBase62(base10Char)
@@ -2273,7 +1600,7 @@ local function BuildLegitSkillsHash()
 	
 	local hash = zo_strformat("<<1>><<2>><<3>>", TAG_SKILLS, REVISION_SKILLS, MODE_SKILLS)
 	
-	for skillType = 1, 8 do
+	for skillType = 1, SKILLTYPES_IN_SKILLBUILDER do
 		
 		for skillLineIndex = 1, GetNumSkillLines(skillType) do
 			
@@ -2283,7 +1610,7 @@ local function BuildLegitSkillsHash()
 				hash = hash .. Base62(skillType + SKILLTYPE_TREESHOLD) .. Base62(playerRaceId)
 			else
 				
-				local skillLineName = zo_strformat(SI_SKILLS_ENTRY_LINE_NAME_FORMAT, GetSkillLineInfo(skillType, skillLineIndex))
+				local skillLineName = zo_strformat(SI_SKILLS_TREE_NAME_FORMAT, GetSkillLineInfo(skillType, skillLineIndex))
 				if skillLineName == LSF:GetSkillLineInfo(skillType, skillLineIndex) then
 					hash = hash .. Base62(skillType + SKILLTYPE_TREESHOLD) .. Base62(skillLineIndex)
 				else
@@ -2297,7 +1624,7 @@ local function BuildLegitSkillsHash()
 						end
 					end
 					if not reverseSearchFound then -- A skillLine which is not yet handled. Abort
-						return
+						return "" -- For compatibility.
 					end
 					
 				end
@@ -2417,7 +1744,7 @@ local function BuildBuilderSkillsHash()
 	local raceId = SuperStarSkills.race
 	local pointsSpentInTotal = 0
 	
-	for skillType=1, 8 do
+	for skillType=1, SKILLTYPES_IN_SKILLBUILDER do
 		for skillLineIndex=1, LSF:GetNumSkillLines(skillType) do
 			local skillLineHash, skillLinePoints = BuildSkillLineHashFromBuilder(skillType, skillLineIndex, classId, raceId)
 			hash = hash .. skillLineHash
@@ -3053,6 +2380,313 @@ function SuperStar_CheckImportedBuild(self)
 		SuperStarXMLImport:GetNamedChild("ImportSeeBuild"):SetHidden(true)
 	end
 	
+end
+
+local SUPERSTAR_NOWARNING = 0
+local SUPERSTAR_INVALID_CLASS = 1
+local SUPERSTAR_NOT_ENOUGHT_SP = 2
+local SUPERSTAR_INVALID_RACE = 3
+local SUPERSTAR_REQ_SKILLLINE_BUTNOTFOUND = 4
+
+local function AnnounceSPRespecDone(totalPointSet)
+	CENTER_SCREEN_ANNOUNCE:AddMessage(999, CSA_EVENT_COMBINED_TEXT, SOUNDS.LEVEL_UP, GetString(SUPERSTAR_CSA_RESPECDONE_TITLE), zo_strformat(SUPERSTAR_CSA_RESPECDONE_POINTS, totalPointSet), nil, nil, nil, nil)
+end
+
+local function AnnounceSPRespecProgress(skillType)
+	CENTER_SCREEN_ANNOUNCE:AddMessage(999, CSA_EVENT_SMALL_TEXT, SOUNDS.QUEST_OBJECTIVE_COMPLETE, GetString("SUPERSTAR_RESPEC_INPROGRESS", skillType), nil, nil, nil, nil, nil)
+end
+
+local function AnnounceSPRespecStarted(totalPointSet)
+	
+	local minutes
+	if totalPointSet < 150 then
+		minutes = 1
+	elseif totalPointSet < 300 then
+		minutes = 2
+	else
+		minutes = 3
+	end
+	
+	CENTER_SCREEN_ANNOUNCE:AddMessage(999, CSA_EVENT_COMBINED_TEXT, SOUNDS.CHAMPION_WINDOW_OPENED, GetString(SUPERSTAR_CSA_RESPEC_INPROGRESS), zo_strformat(SUPERSTAR_CSA_RESPEC_TIME, minutes), nil, nil, nil, nil)
+	
+end
+
+-- zo_callLater is here to prevent ZOS limitation of 100 messages / minute
+local function RespecSkillsSpendPoints(skillsData, skillType, skillLineIndex, abilityIndex, totalPointSet, noRace, skillLineForReference)
+	
+	local function GoForward(skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference)
+	
+		if abilityIndex + 1 > GetNumSkillAbilities(skillType, skillLineIndex) then
+			abilityIndex = 1
+			skillLineIndex = skillLineIndex + 1
+			skillLineForReference = skillLineIndex
+		else
+			abilityIndex = abilityIndex + 1
+		end
+		
+		if skillLineIndex > GetNumSkillLines(skillType) then
+			abilityIndex = 1
+			skillLineIndex = 1
+			skillLineForReference = 1
+			skillType = skillType + 1
+			AnnounceSPRespecProgress(skillType - 1)
+		end
+		
+		return skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference
+	
+	end
+	
+	local function RespecAbilitiesInSkillLine(skillType, skillLineIndex, abilityIndex, skillLineForReference)
+		
+		if not skillLineForReference then
+			skillLineForReference = skillLineIndex
+		end
+		
+		local _, _, earnedRank, passive, _, purchased, progressionIndex = GetSkillAbilityInfo(skillType, skillLineIndex, abilityIndex)
+		local exception = SuperStarSkills:ConvertExceptionsPointsSpentInAbility(skillType, skillLineForReference, abilityIndex, true)
+		local spentIn = skillsData[skillType][skillLineForReference][abilityIndex].spentIn
+		local abilityLevel = skillsData[skillType][skillLineForReference][abilityIndex].abilityLevel
+		local _, actualSkillRank = GetSkillLineInfo(skillType, skillLineIndex)
+		
+		-- Don't buy 1st point if granted
+		if not purchased and not exception and spentIn > 0 then
+			
+			--d("Not Purchased")
+			-- take it
+			if earnedRank <= actualSkillRank then
+				--d("Not Purchased and ok !")
+				PutPointIntoSkillAbility(skillType, skillLineIndex, abilityIndex)
+				totalPointSet = totalPointSet + 1
+			else
+				skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference = GoForward(skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference)
+			end
+			
+			--d("Calling with args :" .. skillType .. ";" .. skillLineIndex .. ";" .. abilityIndex .. ";" .. totalPointSet)
+			zo_callLater(function() RespecSkillsSpendPoints(skillsData, skillType, skillLineIndex, abilityIndex, totalPointSet, noRace, skillLineForReference) end, 350)
+			
+			return true
+			
+		elseif purchased and spentIn > 1 then
+			
+			--d("Purchased")
+			
+			if passive then
+				
+				--d("Passive")
+				
+				local currentUpgradeLevel, maxUpgradeLevel = GetSkillAbilityUpgradeInfo(skillType, skillLineIndex, abilityIndex)
+				local _, _, upgradeEarningRank = GetSkillAbilityNextUpgradeInfo(skillType, skillLineIndex, abilityIndex)
+				if spentIn <= maxUpgradeLevel and spentIn > currentUpgradeLevel then
+					
+					if upgradeEarningRank <= actualSkillRank then
+						--d("Purchased and ok !")
+						PutPointIntoSkillAbility(skillType, skillLineIndex, abilityIndex, true)
+						totalPointSet = totalPointSet + 1
+						
+						if spentIn == currentUpgradeLevel + 1 then
+							skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference = GoForward(skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference)
+						end
+						
+					else
+						skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference = GoForward(skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference)
+					end
+					
+					--d("Calling with args :" .. skillType .. ";" .. skillLineIndex .. ";" .. abilityIndex .. ";" .. totalPointSet)
+					zo_callLater(function() RespecSkillsSpendPoints(skillsData, skillType, skillLineIndex, abilityIndex, totalPointSet, noRace, skillLineForReference) end, 350)
+					
+					return true
+				end
+			else
+				
+				--d("Active/Ultimate")
+				
+				if abilityLevel == ABILITY_LEVEL_UPPERMORPH or abilityLevel == ABILITY_LEVEL_LOWERMORPH then
+				
+					ChooseAbilityProgressionMorph(progressionIndex, abilityLevel)
+					totalPointSet = totalPointSet + 1
+					
+					skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference = GoForward(skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference)
+					
+					--d("Calling with args :" .. skillType .. ";" .. skillLineIndex .. ";" .. abilityIndex .. ";" .. totalPointSet)
+					zo_callLater(function() RespecSkillsSpendPoints(skillsData, skillType, skillLineIndex, abilityIndex, totalPointSet, noRace, skillLineForReference) end, 350)
+					
+					return true
+				
+				end
+			end
+		else
+		
+			skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference = GoForward(skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference)
+			
+			--d("Calling with args :" .. skillType .. ";" .. skillLineIndex .. ";" .. abilityIndex .. ";" .. totalPointSet)
+			zo_callLater(function() RespecSkillsSpendPoints(skillsData, skillType, skillLineIndex, abilityIndex, totalPointSet, noRace, skillLineForReference) end, 1)
+			
+			return true
+			
+		end
+	
+	end
+	
+	if totalPointSet < SP_MAX_SPENDABLE_POINTS then
+		if skillType <= SKILLTYPES_IN_SKILLBUILDER then
+			if noRace and skillType == SKILL_TYPE_RACIAL then
+				skillType, skillLineIndex, abilityIndex, noRace, skillLineForReference = GoForward(SKILL_TYPE_RACIAL, 9, 9, totalPointSet, noRace, skillLineForReference)
+			end
+			local referenceNumSkillLines = LSF:GetNumSkillLines(skillType)
+			if referenceNumSkillLines > 0 and skillLineIndex <= referenceNumSkillLines then
+				
+				local referenceNumAbilities = SuperStarSkills:GetNumSkillAbilitiesForBuilder(skillType, skillLineForReference)
+				local referenceSkillLineName = LSF:GetSkillLineInfo(skillType, skillLineForReference)
+				
+				local realityNumAbilities = GetNumSkillAbilities(skillType, skillLineIndex)
+				local realitySkillLineName = zo_strformat(SI_SKILLS_TREE_NAME_FORMAT, GetSkillLineInfo(skillType, skillLineIndex))
+				
+				-- Protect against new skillLines & new abilities
+				if referenceNumAbilities == realityNumAbilities and (skillType == SKILL_TYPE_RACIAL or referenceSkillLineName == realitySkillLineName) then
+					if abilityIndex <= referenceNumAbilities then
+						local shouldReturn = RespecAbilitiesInSkillLine(skillType, skillLineIndex, abilityIndex, skillLineForReference)
+						if shouldReturn then return end
+					end
+				else
+					
+					local reverseSearchFound
+					for reverseSearchIndex=1, LSF:GetNumSkillLines(skillType) do
+						if realitySkillLineName == LSF:GetSkillLineInfo(skillType, reverseSearchIndex) then
+							reverseSearchFound = reverseSearchIndex
+							break
+						end
+					end
+					if not reverseSearchFound then -- A skillLine which is not yet handled. Abort
+						skillType = skillType + 1
+						skillLineIndex = 1
+						skillLineForReference = skillLineIndex
+					else
+						skillLineForReference = reverseSearchFound
+					end
+					
+					zo_callLater(function()
+						--d("Another try for skillLine " .. skillLineIndex .. " (" .. skillLineForReference .. "/" .. referenceNumSkillLines .. ") ( Ref: " .. referenceSkillLineName .. " / Need: " .. realitySkillLineName .." )")
+						RespecSkillsSpendPoints(skillsData, skillType, skillLineIndex, 1, totalPointSet, noRace, skillLineForReference)
+					end, 200)
+					
+					return
+					
+				end
+			end
+		end
+		
+		skillsDataForRespec = nil
+		AnnounceSPRespecDone(totalPointSet)
+	
+	end
+	
+end
+
+local function CheckSPrespec(skillsData)
+
+	local letsGo = false
+	local returnCode = SUPERSTAR_NOWARNING
+	
+	-- blocked
+	if GetUnitClassId("player") ~= skillsData.classId then
+		returnCode = SUPERSTAR_INVALID_CLASS
+		return letsGo, returnCode
+	end
+	
+	-- blocked
+	if GetAvailableSkillPoints() < skillsData.pointsRequired then
+		returnCode = SUPERSTAR_NOT_ENOUGHT_SP
+		return letsGo, returnCode
+	end
+	
+	letsGo = true
+	
+	--authorized
+	if GetUnitRaceId("player") ~= skillsData.raceId then
+		returnCode = SUPERSTAR_INVALID_RACE
+	end
+	
+	return letsGo, returnCode
+		
+end
+
+local function CheckRespecSkillLines()
+	
+	local realSkillLines = {}
+	local refSkillLines = {}
+	local skillLinesNotFound = ""
+	
+	for skillType = 1, SKILLTYPES_IN_SKILLBUILDER do
+		
+		if skillType ~= SKILL_TYPE_RACIAL then
+			for skillLineIndex = 1, GetNumSkillLines(skillType) do
+				realSkillLines[zo_strformat(SI_SKILLS_TREE_NAME_FORMAT, GetSkillLineInfo(skillType, skillLineIndex))] = true
+			end
+			
+			for skillLineIndex = 1, LSF:GetNumSkillLines(skillType) do
+				refSkillLines[LSF:GetSkillLineInfo(skillType, skillLineIndex)] = true
+			end
+		end
+		
+	end
+	
+	for skillLineName in pairs(refSkillLines) do
+		if not realSkillLines[skillLineName] then
+			skillLinesNotFound = zo_strjoin(", ", skillLineName, skillLinesNotFound)
+		end
+	end
+	
+	if skillLinesNotFound ~= "" then
+		skillLinesNotFound = string.sub(skillLinesNotFound, 0, -3)
+	end
+	
+	return skillLinesNotFound
+
+end
+
+function ShowRespecScene(favoriteIndex)
+	
+	local hash = db.favoritesList[favoriteIndex].hash
+	local favName = db.favoritesList[favoriteIndex].name
+	local attrData, skillsData, cpData = CheckImportedBuild(hash)
+	
+	if skillsData then
+	
+		LSF:Initialize(skillsData.classId, skillsData.raceId)
+		LMM:Update(MENU_CATEGORY_SUPERSTAR, "SuperStarRespec")
+		
+		local doRespec, returnCode = CheckSPrespec(skillsData)
+		
+		if doRespec then
+			
+			skillsDataForRespec = skillsData
+			skillsDataForRespec.noRace = returnCode == SUPERSTAR_INVALID_RACE
+			
+			SuperStarXMLRespec:GetNamedChild("Title"):SetText(zo_strformat(SUPERSTAR_TITLE, favName))
+			SuperStarXMLRespec:GetNamedChild("Warning"):SetText(GetString(SUPERSTAR_RESPEC_SKILLLINES_MISSING))
+			SuperStarXMLRespec:GetNamedChild("SkillLines"):SetText(CheckRespecSkillLines())
+			SuperStarXMLRespec:GetNamedChild("Respec"):SetHidden(false)
+			
+		else
+			SuperStarXMLRespec:GetNamedChild("Title"):SetText(zo_strformat(SUPERSTAR_TITLE, favName))
+			SuperStarXMLRespec:GetNamedChild("Warning"):SetText(GetString("SUPERSTAR_RESPEC_ERROR", returnCode))
+			SuperStarXMLRespec:GetNamedChild("SkillLines"):SetText("")
+			SuperStarXMLRespec:GetNamedChild("Respec"):SetHidden(true)
+			skillsDataForRespec = nil
+		end
+		
+	else
+		-- Build error
+	end
+	
+end
+
+function SuperStar_DoRespec()
+	if skillsDataForRespec then
+		AnnounceSPRespecStarted(skillsDataForRespec.pointsRequired)
+		RespecSkillsSpendPoints(skillsDataForRespec, 1, 1, 1, 0, skillsDataForRespec.noRace, 1)
+		SuperStar_ToggleSuperStarPanel()
+	end
 end
 
 -- Main Scene
@@ -4249,6 +3883,16 @@ local function ConfirmSaveFavFromBuilder(favName, hash)
 	
 end
 
+local function RespecFavorite(control)
+
+	local data = ZO_ScrollList_GetData(WINDOW_MANAGER:GetMouseOverControl())
+	if data.name ~= virtualFavorite then
+		local _, index = GetDataByName(data.name, "favoritesList")
+		ShowRespecScene(index)
+	end
+
+end
+
 local function RemoveFavorite(control)
 
 	local data = ZO_ScrollList_GetData(WINDOW_MANAGER:GetMouseOverControl())
@@ -4302,6 +3946,7 @@ function SuperStar_HoverRowOfFavorite(control)
 	favoriteLocked = data.favoriteLocked
 	
 	isFavoriteShown = true
+	isFavoriteHaveSP = data.sp > 0
 	KEYBIND_STRIP:UpdateKeybindButtonGroup(SUPERSTAR_FAVORITES_WINDOW.favoritesKeybindStripDescriptor)
 	
 end
@@ -4336,19 +3981,16 @@ local function InitializeDialogs()
 		},
 		buttons =
 		{
-			[1] =
 			{
 				text = SI_DIALOG_CONFIRM,
 				requiresTextInput = true,
 				callback =  function(dialog)
 					local favName = ZO_Dialogs_GetEditBoxText(dialog)
-					if(favName and favName ~= "") then
+					if favName and favName ~= "" then
 						ConfirmSaveFavFromBuilder(favName, dialog.data.hash)
 					end
 				end,
 			},
-			
-			[2] =
 			{
 				text = SI_DIALOG_CANCEL,
 				callback = function(dialog)
@@ -4374,60 +4016,21 @@ local function InitializeDialogs()
 		},
 		buttons =
 		{
-			[1] =
 			{
 				text = SI_DIALOG_CONFIRM,
 				requiresTextInput = true,
 				callback =  function(dialog)
 					local favName = ZO_Dialogs_GetEditBoxText(dialog)
-					if(favName and favName ~= "") then
+					if favName and favName ~= "" then
 						ConfirmSaveFavFromImport(favName, dialog.data.hash)
 					end
 				end,
 			},
-			
-			[2] =
 			{
 				text = SI_DIALOG_CANCEL,
 				callback = function(dialog)
 					return true
 				end,
-			}
-		}
-	})
-	
-	local customControl = ZO_ChampionRespecConfirmationDialog
-	ZO_Dialogs_RegisterCustomDialog("SUPERSTAR_CONFIRM_COST",
-	{
-		gamepadInfo =
-		{
-			dialogType = GAMEPAD_DIALOGS.BASIC,
-		},
-		customControl = customControl,
-		title =
-		{
-			text = SI_CHAMPION_DIALOG_CONFIRM_CHANGES_TITLE,
-		},
-		mainText =
-		{
-			text = zo_strformat(SI_CHAMPION_DIALOG_TEXT_FORMAT, GetString(SI_CHAMPION_DIALOG_CONFIRM_POINT_COST)),
-		},
-		setup = function(dialog)
-			ZO_CurrencyControl_SetSimpleCurrency(customControl:GetNamedChild("BalanceAmount"), CURT_MONEY, GetCarriedCurrencyAmount(CURT_MONEY))
-			ZO_CurrencyControl_SetSimpleCurrency(customControl:GetNamedChild("RespecCost"), CURT_MONEY, GetChampionRespecCost())
-		end,
-		buttons =
-		{
-			{
-				control = customControl:GetNamedChild("Confirm"),
-				text = SI_DIALOG_CONFIRM,
-				callback = function(dialog)
-					SuperStar.respec()
-				end,
-			},
-			{
-				control = customControl:GetNamedChild("Cancel"),
-				text = SI_DIALOG_CANCEL,
 			}
 		}
 	})
@@ -4445,14 +4048,10 @@ local function InitializeDialogs()
 		buttons =
 		{
 			{
-				control = customControl:GetNamedChild("Confirm"),
 				text = SI_DIALOG_CONFIRM,
-				callback = function(dialog)
-					SuperStar.respecSkills()
-				end,
+				callback = RespecSkills,
 			},
 			{
-				control = customControl:GetNamedChild("Cancel"),
 				text = SI_DIALOG_CANCEL,
 			}
 		}
@@ -4492,7 +4091,7 @@ local function CreateScenes()
 	SUPERSTAR_MAIN_SCENE:AddFragment(TITLE_FRAGMENT)
 	
 	-- Set Title
-	ZO_CreateStringId("SI_SUPERSTAR_MAIN_MENU_TITLE", GetUnitName("player"))
+	ZO_CreateStringId("SUPERSTAR_MAIN_MENU_TITLE", GetUnitName("player"))
 	local SUPERSTAR_MAIN_TITLE_FRAGMENT = ZO_SetTitleFragment:New(SI_SUPERSTAR_CATEGORY_MENU_TITLE)
 	SUPERSTAR_MAIN_SCENE:AddFragment(SUPERSTAR_MAIN_TITLE_FRAGMENT)
 	
@@ -4528,7 +4127,7 @@ local function CreateScenes()
 	SUPERSTAR_SKILLS_SCENE:AddFragment(SKILLS_WINDOW_SOUNDS)
 	
 	-- Set Title
-	ZO_CreateStringId("SI_SUPERSTAR_SKILLS_MENU_TITLE", GetString(SI_MAIN_MENU_SKILLS))
+	ZO_CreateStringId("SUPERSTAR_SKILLS_MENU_TITLE", GetString(SI_MAIN_MENU_SKILLS))
 	local SUPERSTAR_SKILLS_TITLE_FRAGMENT = ZO_SetTitleFragment:New(SI_SUPERSTAR_CATEGORY_MENU_TITLE)
 	SUPERSTAR_SKILLS_SCENE:AddFragment(SUPERSTAR_SKILLS_TITLE_FRAGMENT)
 	
@@ -4574,6 +4173,9 @@ local function CreateScenes()
 	-- The title fragment
 	SUPERSTAR_IMPORT_SCENE:AddFragment(TITLE_FRAGMENT)
 	
+	-- Tree background
+	SUPERSTAR_IMPORT_SCENE:AddFragment(TREE_UNDERLAY_FRAGMENT)
+	
 	-- Set Title
 	local SUPERSTAR_IMPORT_TITLE_FRAGMENT = ZO_SetTitleFragment:New(SI_SUPERSTAR_CATEGORY_MENU_TITLE)
 	SUPERSTAR_IMPORT_SCENE:AddFragment(SUPERSTAR_IMPORT_TITLE_FRAGMENT)
@@ -4581,7 +4183,6 @@ local function CreateScenes()
 	-- Add the XML to our scene
 	local SUPERSTAR_IMPORT_WINDOW = ZO_FadeSceneFragment:New(SuperStarXMLImport)
 	SUPERSTAR_IMPORT_SCENE:AddFragment(SUPERSTAR_IMPORT_WINDOW)
-	SUPERSTAR_IMPORT_SCENE:AddFragment(TREE_UNDERLAY_FRAGMENT)
 	
 	SUPERSTAR_IMPORT_SCENE:RegisterCallback("StateChange",  function(oldState, newState)
 		if(newState == SCENE_SHOWING) then
@@ -4602,6 +4203,9 @@ local function CreateScenes()
 	-- The title fragment
 	SUPERSTAR_FAVORITES_SCENE:AddFragment(TITLE_FRAGMENT)
 	
+	-- Tree background
+	SUPERSTAR_FAVORITES_SCENE:AddFragment(TREE_UNDERLAY_FRAGMENT)
+	
 	-- Set Title
 	local SUPERSTAR_FAVORITES_TITLE_FRAGMENT = ZO_SetTitleFragment:New(SI_SUPERSTAR_CATEGORY_MENU_TITLE)
 	SUPERSTAR_FAVORITES_SCENE:AddFragment(SUPERSTAR_FAVORITES_TITLE_FRAGMENT)
@@ -4609,7 +4213,6 @@ local function CreateScenes()
 	-- Add the XML to our scene
 	SUPERSTAR_FAVORITES_WINDOW = ZO_FadeSceneFragment:New(SuperStarXMLFavorites)
 	SUPERSTAR_FAVORITES_SCENE:AddFragment(SUPERSTAR_FAVORITES_WINDOW)
-	SUPERSTAR_FAVORITES_SCENE:AddFragment(TREE_UNDERLAY_FRAGMENT)
 	
 	SUPERSTAR_FAVORITES_WINDOW.favoritesKeybindStripDescriptor =
 	{
@@ -4619,6 +4222,12 @@ local function CreateScenes()
 			keybind = "UI_SHORTCUT_PRIMARY",
 			callback = ViewFavorite,
 			visible = function() return isFavoriteShown end,
+		},
+		{
+			name = GetString(SUPERSTAR_RESPECFAV),
+			keybind = "UI_SHORTCUT_SECONDARY",
+			callback = RespecFavorite,
+			visible = function() return isFavoriteShown and isFavoriteHaveSP end,
 		},
 		{
 			name = GetString(SUPERSTAR_REMFAV),
@@ -4636,7 +4245,7 @@ local function CreateScenes()
 		end
 	end)
 	
-	-- Build Scene
+	-- Respec Scene
 	local SUPERSTAR_RESPEC_SCENE = ZO_Scene:New("SuperStarRespec", SCENE_MANAGER)	
 	
 	-- Mouse standard position and background
@@ -4648,6 +4257,9 @@ local function CreateScenes()
 	
 	-- The title fragment
 	SUPERSTAR_RESPEC_SCENE:AddFragment(TITLE_FRAGMENT)
+	
+	-- Tree background
+	SUPERSTAR_RESPEC_SCENE:AddFragment(TREE_UNDERLAY_FRAGMENT)
 	
 	-- Set Title
 	local SUPERSTAR_RESPEC_TITLE_FRAGMENT = ZO_SetTitleFragment:New(SI_SUPERSTAR_CATEGORY_MENU_TITLE)
@@ -4663,35 +4275,35 @@ local function CreateScenes()
 	do
 		local iconData = {
 			{
-				categoryName = SI_SUPERSTAR_MAIN_MENU_TITLE,
+				categoryName = SUPERSTAR_MAIN_MENU_TITLE,
 				descriptor = "SuperStarMain",
 				normal = "EsoUI/Art/MainMenu/menuBar_champion_up.dds",
 				pressed = "EsoUI/Art/MainMenu/menuBar_champion_down.dds",
 				highlight = "EsoUI/Art/MainMenu/menuBar_champion_over.dds",
 			},
 			{
-				categoryName = SI_SUPERSTAR_SKILLS_MENU_TITLE,
+				categoryName = SUPERSTAR_SKILLS_MENU_TITLE,
 				descriptor = "SuperStarSkills",
 				normal = "EsoUI/Art/MainMenu/menuBar_skills_up.dds",
 				pressed = "EsoUI/Art/MainMenu/menuBar_skills_down.dds",
 				highlight = "EsoUI/Art/MainMenu/menuBar_skills_over.dds",
 			},
 			{
-				categoryName = SI_SUPERSTAR_IMPORT_MENU_TITLE,
+				categoryName = SUPERSTAR_IMPORT_MENU_TITLE,
 				descriptor = "SuperStarImport",
 				normal = "EsoUI/Art/Icons/achievements_indexicon_summary_up.dds",
 				pressed = "EsoUI/Art/Icons/achievements_indexicon_summary_down.dds",
 				highlight = "EsoUI/Art/Icons/achievements_indexicon_summary_over.dds",
 			},
 			{
-				categoryName = SI_SUPERSTAR_FAVORITES_MENU_TITLE,
+				categoryName = SUPERSTAR_FAVORITES_MENU_TITLE,
 				descriptor = "SuperStarFavorites",
 				normal = "EsoUI/Art/Cadwell/cadwell_indexicon_gold_up.dds",
 				pressed = "EsoUI/Art/Cadwell/cadwell_indexicon_gold_down.dds",
 				highlight = "EsoUI/Art/Cadwell/cadwell_indexicon_gold_over.dds",
 			},
 			{
-				categoryName = SI_SUPERSTAR_RESPEC_MENU_TITLE,
+				categoryName = SUPERSTAR_RESPEC_MENU_TITLE,
 				descriptor = "SuperStarRespec",
 				normal = "EsoUI/Art/Guild/tabicon_history_up.dds",
 				pressed = "EsoUI/Art/Guild/tabicon_history_down.dds",
@@ -4712,7 +4324,7 @@ local function CreateScenes()
 end
 
 -- Called by Bindings and Slash Command
-function SuperStar_ShowSuperStarPanel()
+function SuperStar_ToggleSuperStarPanel()
 	LMM:ToggleCategory(MENU_CATEGORY_SUPERSTAR)
 end
 
@@ -4738,7 +4350,7 @@ local function OnAddonLoaded(_, addonName)
 		RefreshSurveyStats()
 		
 		-- Register Slash commands
-		SLASH_COMMANDS["/superstar"] = SuperStar_ShowSuperStarPanel
+		SLASH_COMMANDS["/superstar"] = SuperStar_ToggleSuperStarPanel
 		
 		EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ACTION_SLOTS_FULL_UPDATE, SwapSniffer)
 		EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)

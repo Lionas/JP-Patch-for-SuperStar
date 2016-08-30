@@ -1,30 +1,31 @@
 --[[
-Author: Ayantir
-Filename: en.lua
-Version: 2
+Author: Ayantir(Lionas)
+Filename: jp.lua
+Version: 2.6
 ]]--
 
 local strings = {
 	
 	SI_BINDING_NAME_SUPERSTAR_SHOW_PANEL			= "SuperStarをトグル",
 	
+	SUPERSTAR_RESPECFAV									= "スキルを振りなおす",
 	SUPERSTAR_SAVEFAV										= "お気に入りを登録",
 	SUPERSTAR_VIEWFAV										= "お気に入りを見る",
 	SUPERSTAR_REMFAV										= "お気に入りを削除",
 	SUPERSTAR_FAVNAME										= "お気に入りの名前",
 	
 	SUPERSTAR_CSA_RESPECDONE_TITLE					= "振り直しを完了しました",
-	SUPERSTAR_CSA_RESPECDONE_LONG						= "アーキタイプを変更しました",
 	SUPERSTAR_CSA_RESPECDONE_POINTS					= "<<1>> ポイントを消費",
-	SUPERSTAR_CHAMPION_WARNING							= "You are attempting to redistribute the points spent in ALL Constellations.\n\nDoing this will delete all your actual champion points actually spent for the new build that you have chosen. You will be charged <<1>>  if you commit your changes. You will not be charged if you do not confirm your changes.",
-	SUPERSTAR_SKILLS_WARNING							= "You are attempting to automatically set your skill points with the selected template. This operation will cost you <<1>> skill points for a total respec.\n\nSome points won't be purchased depending on your progression in certain skill lines",
 	SUPERSTAR_CSA_RESPEC_INPROGRESS					= "振り直し中",
 	SUPERSTAR_CSA_RESPEC_TIME							= "この操作はおよそ <<1>> <<1[分]>>　かかります",
 
-	SUPERSTAR_RESPEC_ERROR_INVALID_CLASS			= "スキルポイントの振り直しができません, クラスが不正",
-	SUPERSTAR_RESPEC_ERROR_NOT_ENOUGHT_SP			= "スキルポイントの振り直しができません, 十分なスキルポイントがない",
-	SUPERSTAR_RESPEC_ERROR_INVALID_RACE				= "警告: このビルドで定義された種族はあなたのものではありません, 種族ポイントは設定されません",
-	SUPERSTAR_RESPEC_ERROR_SKILLLINE_NOTFOUND		= "警告: <<1>> スキルラインがアンロックされていません, <<1>> スキルポイントは設定されません",
+	SUPERSTAR_TITLE										= "You are about to Respec your skills with the template : <<1>>",
+	
+	SUPERSTAR_RESPEC_ERROR1								= "スキルポイントの振り直しができません, 不正なクラス",
+	SUPERSTAR_RESPEC_ERROR2								= "スキルポイントの振り直しができません, 十分なスキルポイントがない",
+	SUPERSTAR_RESPEC_ERROR3								= "警告: このビルドで定義された種族はあなたのものではありません, 種族ポイントは設定されません",
+	
+	SUPERSTAR_RESPEC_SKILLLINES_MISSING				= "警告: スキルラインがアンロックされていないため、スキルポイントは設定されません",
 
 	SUPERSTAR_RESPEC_INPROGRESS1						= "クラススキルセット",
 	SUPERSTAR_RESPEC_INPROGRESS2						= "武器スキルセット",
@@ -35,9 +36,9 @@ local strings = {
 	SUPERSTAR_RESPEC_INPROGRESS7						= "種族スキルセット",
 	SUPERSTAR_RESPEC_INPROGRESS8						= "トレードスキルセット",
 	
-	SI_SUPERSTAR_IMPORT_MENU_TITLE					= "インポート",
-	SI_SUPERSTAR_FAVORITES_MENU_TITLE				= "お気に入り",
-	SI_SUPERSTAR_RESPEC_MENU_TITLE					= "振り直し",
+	SUPERSTAR_IMPORT_MENU_TITLE						= "インポート",
+	SUPERSTAR_FAVORITES_MENU_TITLE					= "お気に入り",
+	SUPERSTAR_RESPEC_MENU_TITLE						= "振り直し",
 	
 	SUPERSTAR_DIALOG_SPRESPEC_TITLE					= "スキルポイントを設定",
 	SUPERSTAR_DIALOG_SPRESPEC_TEXT					= "選択されたテンプレートに従ってスキルポイントを設定しますか?",
@@ -53,7 +54,7 @@ local strings = {
 	SUPERSTAR_XML_NEWBUILD								= "新しいビルド :",
 	SUPERSTAR_XML_BUTTON_RESPEC						= "振り直し",
 
-	SUPERSTAR_XML_IMPORT_EXPLAIN						= "Import others builds with this form\n\nBuilds can contain Champion points, Skill points and Attributes.\n\nYou can also share your build with others by generating its hash",
+	SUPERSTAR_XML_IMPORT_EXPLAIN						= "Import others builds with this form\n\nBuilds can contain Champion points, Skill points and Attributes.",
 	SUPERSTAR_XML_FAVORITES_EXPLAIN					= "Favorites permits you to see and respec your builds quickly.\n\nPlease note that if you can respec your Champion points from SuperStar, Attributes and Skill points can only be respeced through shrines in your faction capital.",
 
 	SUPERSTAR_XML_SKILLPOINTS							= "スキルポイント",
@@ -88,8 +89,10 @@ local strings = {
 	SUPERSTAR_IMPORT_BUILD_OK							= "ビルドは正しい, 表示します!",
 	SUPERSTAR_IMPORT_BUILD_NOK							= "ビルドが不正, ハッシュをチェック",
 	
+	SUPERSTAR_IMPORT_BUILD_LABEL						= "ビルドをインポート : ハッシュを貼り付け",
+	SUPERSTAR_IMPORT_MYBUILD							= "マイビルド",
+  
 	SUPERSTAR_XML_SWITCH_PLACEHOLDER					= "オフバー用に武器を切り替え",
-
 }
 	
 for stringId, stringValue in pairs(strings) do

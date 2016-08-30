@@ -1,11 +1,11 @@
 --[[
 Author: Ayantir
 Filename: LibSkillFactory.lua
-Version: 7
+Version: 8
 ]]--
 
 --Register LAM with LibStub
-local MAJOR, MINOR = "LibSkillsFactory", 7
+local MAJOR, MINOR = "LibSkillsFactory", 8
 local LibSkillsFactory, oldminor = LibStub:NewLibrary(MAJOR, MINOR)
 if not LibSkillsFactory then return end -- the same or newer version of this lib is already loaded into memory 
 	
@@ -1919,9 +1919,9 @@ LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][3][7]["skillPool"][1].er = 7
 LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][3][8]["skillPool"][1].er = 8
 LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][3][9]["skillPool"][1].er = 9
 
-LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][3][4]["skillPool"][2].er = 69
-LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][3][5]["skillPool"][2].er = 69
-LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][3][7]["skillPool"][2].er = 69
+LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][3][4]["skillPool"][2].er = 4
+LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][3][5]["skillPool"][2].er = 6
+LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][3][7]["skillPool"][2].er = 10
 
 LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][4][7]["skillPool"][1].er = 3
 LibSkillsFactory.skillSubFactory[SKILL_TYPE_WORLD][4][8]["skillPool"][1].er = 3
@@ -1988,7 +1988,7 @@ LibSkillsFactory.skillSubFactory[SKILL_TYPE_GUILD][4][2]["skillPool"][3].er = 8
 LibSkillsFactory.skillSubFactory[SKILL_TYPE_GUILD][4][3]["skillPool"][3].er = 9
 
 LibSkillsFactory.skillSubFactory[SKILL_TYPE_GUILD][4][2]["skillPool"][4].er = 11
-LibSkillsFactory.skillSubFactory[SKILL_TYPE_GUILD][4][3]["skillPool"][4].er = 69
+LibSkillsFactory.skillSubFactory[SKILL_TYPE_GUILD][4][3]["skillPool"][4].er = 12
 
 LibSkillsFactory.skillSubFactory[SKILL_TYPE_GUILD][5][6]["skillPool"][1].er = 6
 LibSkillsFactory.skillSubFactory[SKILL_TYPE_GUILD][5][7]["skillPool"][1].er = 7

@@ -1,105 +1,95 @@
 --[[
 Author: Ayantir
 Filename: fr.lua
-Version: 2
+Version: 2.6
 ]]--
 
--- Used in LUA
---[[
-SuperStar.lang.saveFav = "Enregistrer le favori"
-SuperStar.lang.favName = "Nom du favori"
-SuperStar.lang.savFavErrTooManyFavs = "Impossible de sauvegarder votre favori, veuillez en supprimer un d'abord"
-SuperStar.lang.savFavErrAlreadyExists = "Impossible de sauvegarder votre favori, celui-ci existe déjà"
-SuperStar.lang.CSARespecDone = "Archétype changé"
-SuperStar.lang.CSARespecSkillsDone = "Archétype changé"
-SuperStar.lang.CSARespecSkillsPoints = "<<1>> points attribués"
-SuperStar.lang.respecWarning = "Vous êtes sur le point de redistribuer l'ensemble des points dépensés dans TOUTES les Constellations.\n\nFaire ceci entraînera l'annulation de tous vos points champion actuellement dépensés pour l'archétype que vous avez choisi. Vos changements ne seront pas pris en compte avant que vous ne confirmiez leur dépense.\n\nEffectuer cette opération vous coûtera <<1>> lorsque vous confirmerez les changements."
-SuperStar.lang.respecSPWarning = "Vous êtes sur le point d'attribuer automatiquement vos points de compétence selon le modèle sélectionné. Cette opération vous coutera <<1>> points de compétence pour une respécialisation totale.\n\nDes points pourront ne pas être placés en fonction du déblocage de certaines lignes de compétence"
-SuperStar.lang.CSARespecSkillsStarted = "Réattribution des points en cours"
-SuperStar.lang.CSARespecSkillsPointsTime = "L'opération prendra environ <<1>> <<1[minutes/minute/minutes]>>"
+SafeAddString(SI_BINDING_NAME_SUPERSTAR_SHOW_PANEL,			"Toggle SuperStar", 1)
+	
+SafeAddString(SUPERSTAR_RESPECFAV,									"Réattribuer les compétencess", 1)
+SafeAddString(SUPERSTAR_SAVEFAV,										"Enregistrer le favori", 1)
+SafeAddString(SUPERSTAR_VIEWFAV,										"Voir le favori", 1)
+SafeAddString(SUPERSTAR_REMFAV,										"Supprimer le favori", 1)
+SafeAddString(SUPERSTAR_FAVNAME,										"Nom du favori", 1)
+	
+SafeAddString(SUPERSTAR_CSA_RESPECDONE_TITLE,					"Archétype changé", 1)
+SafeAddString(SUPERSTAR_CSA_RESPECDONE_POINTS,					"<<1>> points attribués", 1)
+SafeAddString(SUPERSTAR_CSA_RESPEC_INPROGRESS,					"Réattribution des points en cours", 1)
+SafeAddString(SUPERSTAR_CSA_RESPEC_TIME,							"L'opération prendra environ <<1>> <<1[minutes/minute/minutes]>>", 1)
 
-local SUPERSTAR_INVALID_CLASS = 1
-local SUPERSTAR_NOT_ENOUGHT_SP = 2
-local SUPERSTAR_INVALID_RACE = 4
-local SUPERSTAR_REQ_LEGERDEMAIN_BUTNOTFOUND = 8
-local SUPERSTAR_REQ_VAMPIRE_BUTNOTFOUND = 16
-local SUPERSTAR_REQ_WEREWOLF_BUTNOTFOUND = 32
+SafeAddString(SUPERSTAR_TITLE,										"Réattribuer vos points de compétence avec l'archétype suivant : <<1>>", 1)
+	
+SafeAddString(SUPERSTAR_RESPEC_ERROR1,								"Impossible de réattribuer les points, Classe invalide", 1)
+SafeAddString(SUPERSTAR_RESPEC_ERROR2,								"Impossible de réattribuer les points, Points de compétence insufisants", 1)
+SafeAddString(SUPERSTAR_RESPEC_ERROR3,								"Attention: La race définie dans l'archétype n'est pas la vôtre, les points raciaux ne seront pas définis", 1)
+	
+SafeAddString(SUPERSTAR_RESPEC_SKILLLINES_MISSING,				"Attention: Les lignes de compétence suivantes ne sont pas débloquées et ne seront pas définies", 1)
 
-SuperStar.lang.respecSPError = {}
-SuperStar.lang.respecSPError[SUPERSTAR_INVALID_CLASS] = "Impossible de réattribuer les points, Classe invalide"
-SuperStar.lang.respecSPError[SUPERSTAR_NOT_ENOUGHT_SP] = "Impossible de réattribuer les points, Points de compétence insufisants"
-SuperStar.lang.respecSPError[SUPERSTAR_INVALID_RACE] = "Attention la race définie dans l'archétype n'est pas la vôtre, les points raciaux ne seront pas définis"
-SuperStar.lang.respecSPError[SUPERSTAR_REQ_LEGERDEMAIN_BUTNOTFOUND] = "Attention la ligne de compétence Escroquerie n'est pas débloquée, les points d'Escroquerie ne seront pas définis"
-SuperStar.lang.respecSPError[SUPERSTAR_REQ_VAMPIRE_BUTNOTFOUND] = "Attention la ligne de compétence Vampire n'est pas débloquée, les points de Vampire ne seront pas définis"
-SuperStar.lang.respecSPError[SUPERSTAR_REQ_WEREWOLF_BUTNOTFOUND] = "Attention la ligne de compétence Loup-Garou n'est pas débloquée, les points de Loup-Garou ne seront pas définis"
+SafeAddString(SUPERSTAR_RESPEC_INPROGRESS1,						"Compétences de classe définies", 1)
+SafeAddString(SUPERSTAR_RESPEC_INPROGRESS2,						"Compétences d'arme définies", 1)
+SafeAddString(SUPERSTAR_RESPEC_INPROGRESS3,						"Compétences d'armure définies", 1)
+SafeAddString(SUPERSTAR_RESPEC_INPROGRESS4,						"Compétences du monde définies", 1)
+SafeAddString(SUPERSTAR_RESPEC_INPROGRESS5,						"Compétences de guilde définies", 1)
+SafeAddString(SUPERSTAR_RESPEC_INPROGRESS6,						"Compétences de guerre d'alliance définies", 1)
+SafeAddString(SUPERSTAR_RESPEC_INPROGRESS7,						"Compétences de race définies", 1)
+SafeAddString(SUPERSTAR_RESPEC_INPROGRESS8,						"Compétences d'artisanat définies", 1)
+	
+SafeAddString(SUPERSTAR_IMPORT_MENU_TITLE,						"Importer", 1)
+SafeAddString(SUPERSTAR_FAVORITES_MENU_TITLE,					"Favoris", 1)
+SafeAddString(SUPERSTAR_RESPEC_MENU_TITLE,						"Respec", 1)
+	
+SafeAddString(SUPERSTAR_DIALOG_SPRESPEC_TITLE,					"Set skill points", 1)
+SafeAddString(SUPERSTAR_DIALOG_SPRESPEC_TEXT,					"Set skill points according to the template selected ?", 1)
+	
+SafeAddString(SUPERSTAR_SCENE_SKILL_RACE_LABEL,					"Race", 1)
 
-SuperStar.lang.CSARespecSkillsProgress = {}
-SuperStar.lang.CSARespecSkillsProgress[SKILL_TYPE_CLASS] = "Compétences de classe définies"
-SuperStar.lang.CSARespecSkillsProgress[SKILL_TYPE_WEAPON] = "Compétences d'arme définies"
-SuperStar.lang.CSARespecSkillsProgress[SKILL_TYPE_ARMOR] = "Compétences d'armure définies"
-SuperStar.lang.CSARespecSkillsProgress[SKILL_TYPE_WORLD] = "Compétences du monde définies"
-SuperStar.lang.CSARespecSkillsProgress[SKILL_TYPE_GUILD] = "Compétences de guilde définies"
-SuperStar.lang.CSARespecSkillsProgress[SKILL_TYPE_AVA] = "Compétences de guerre d'alliance définies"
-SuperStar.lang.CSARespecSkillsProgress[SKILL_TYPE_RACIAL] = "Compétences de race définies"
-SuperStar.lang.CSARespecSkillsProgress[SKILL_TYPE_TRADESKILL] = "Compétences d'artisanat définies"
+SafeAddString(SUPERSTAR_XML_CUSTOMIZABLE,							"Personnalisable", 1)
+SafeAddString(SUPERSTAR_XML_GRANTED,								"Débloqués", 1)
+SafeAddString(SUPERSTAR_XML_TOTAL,									"Total", 1)
+SafeAddString(SUPERSTAR_XML_BUTTON_FAV,							"Favori", 1)
+SafeAddString(SUPERSTAR_XML_BUTTON_REINIT,						"Réinitialiser", 1)
+SafeAddString(SUPERSTAR_XML_BUTTON_EXPORT,						"Export", 1)
+SafeAddString(SUPERSTAR_XML_NEWBUILD,								"Nouvel archétype :", 1)
+SafeAddString(SUPERSTAR_XML_BUTTON_RESPEC,						"Respec", 1)
 
-SuperStar.lang.exportedBuildTitle = "Archétype exporté"
-SuperStar.lang.summaryPoints = "points"
-SuperStar.lang.summaryUnspentPoints = "points non dépensés"
-SuperStar.lang.summaryThisTemplate = "cet archétype"
-SuperStar.lang.textIfNotChampion = "Tout vient à point à qui sait attendre" -- easter egg
-SuperStar.lang.bindingToogle = "Afficher/Masquer Superstar"
-SuperStar.lang.sceneNameImport = "Import"
-SuperStar.lang.sceneNameChangeTemplate = "Changer d'archétype"
-SuperStar.lang.sceneNameFavorites = "Favoris"
-SuperStar.lang.newBuildErrNotEnoughtCP = "Impossible - Pas assez de CP"
-SuperStar.lang.newBuildErrNotEnoughtSP = "Impossible - Pas assez de SP"
-SuperStar.lang.newBuildErrNotEnoughtGold = "Impossible - Pas assez d'or"
-SuperStar.lang.SPrespecTitle = "Attribuer les points"
-SuperStar.lang.SPrespecText = "Attribuer les points de compétence conformément au modèle sélectionné ?"
-SuperStar.lang.race = "Race"
+SafeAddString(SUPERSTAR_XML_IMPORT_EXPLAIN,						"Importer d'autres builds avec ce formulaire\n\nLes builds peuvent contenir des points champion, des points de compétence et des points d'attribut.", 1)
+SafeAddString(SUPERSTAR_XML_FAVORITES_EXPLAIN,					"Les favoris vous permettent de voir et de respécialiser vos builds rapidement.\n\n", 1)
 
-SuperStar.lang.SoulMagic = "Magie des âmes"
-SuperStar.lang.WereWolf = "Loup-garou"
+SafeAddString(SUPERSTAR_XML_SKILLPOINTS,							"Points de compétence", 1)
+SafeAddString(SUPERSTAR_XML_CHAMPIONPOINTS,						"Points champion", 1)
 
-]]--
+ZO_CreateStringId("SUPERSTAR_SLOTNAME20",							"Alt. main droite") -- No EN
+ZO_CreateStringId("SUPERSTAR_SLOTNAME21",							"Alt. main gauche") -- No EN
 
-SafeAddString(SUPERSTAR_XML_SWITCH_PLACEHOLDER, "Switchez d'armes pour la 2nde barre", 1)
+ZO_CreateStringId("SUPERSTAR_CHAMPION_SKILL2NAME1",			"Armure lourde") -- No EN
+ZO_CreateStringId("SUPERSTAR_CHAMPION_SKILL3NAME1",			"Armure légère") -- No EN
+ZO_CreateStringId("SUPERSTAR_CHAMPION_SKILL4NAME1",			"Armure moyenne") -- No EN
+ZO_CreateStringId("SUPERSTAR_CHAMPION_SKILL6NAME1",			"Exp CàC") -- No EN
 
-SafeAddString(SUPERSTAR_XML_CUSTOMIZABLE, "Personnalisable", 1)
-SafeAddString(SUPERSTAR_XML_GRANTED, "Débloqués", 1)
-SafeAddString(SUPERSTAR_XML_TOTAL, "Total", 1)
-SafeAddString(SUPERSTAR_XML_BUTTON_FAV, "Favori", 1)
-SafeAddString(SUPERSTAR_XML_BUTTON_REINIT, "Réinitialiser", 1)
-SafeAddString(SUPERSTAR_XML_BUTTON_EXPORT, "Export", 1)
-SafeAddString(SUPERSTAR_XML_NEWBUILD, "Nouvel archétype :", 1)
-SafeAddString(SUPERSTAR_XML_BUTTON_RESPEC, "Respec", 1)
+SafeAddString(SUPERSTAR_MAELSTROM_WEAPON,							"Maelström", 1)
+SafeAddString(SUPERSTAR_DESC_ENCHANT_MAX,							" maximale", 1)
 
-SafeAddString(SUPERSTAR_XML_FAVORITES_TITLE, "Favoris", 1)
-SafeAddString(SUPERSTAR_XML_FAVORITES_EXPLAIN, "Les favoris vous permettent de voir et de respécialiser vos builds rapidement.\n\nNottez que si vous pouvez redistribuer vos points champion depuis SuperStar directement, vos points d'attributs et de compétence ne peuvent être redistribués que via les autels à la capitale de votre faction.", 1)
+SafeAddString(SUPERSTAR_DESC_ENCHANT_SEC,							" secondes", 1)
+SafeAddString(SUPERSTAR_DESC_ENCHANT_SEC_SHORT,					" secs", 1)
 
-SafeAddString(SUPERSTAR_XML_SKILLPOINTS, "Points de compétence", 1)
-SafeAddString(SUPERSTAR_XML_CHAMPIONPOINTS, "Points champion", 1)
+SafeAddString(SUPERSTAR_DESC_ENCHANT_MAGICKA_DMG,				" dégâts de Magie", 1)
+SafeAddString(SUPERSTAR_DESC_ENCHANT_MAGICKA_DMG_SHORT,		" dégâts Magie", 1)
 
-ZO_CreateStringId("SUPERSTAR_SLOTNAME20", "Alt. main droite") -- No EN
-ZO_CreateStringId("SUPERSTAR_SLOTNAME21", "Alt. main gauche") -- No EN
+SafeAddString(SUPERSTAR_DESC_ENCHANT_BASH,						" Percussion", 1)
+SafeAddString(SUPERSTAR_DESC_ENCHANT_BASH_SHORT,				" Percu", 1)
 
-ZO_CreateStringId("SUPERSTAR_CHAMPION_SKILL2NAME1", "Armure lourde") -- No EN
-ZO_CreateStringId("SUPERSTAR_CHAMPION_SKILL3NAME1", "Armure légère") -- No EN
-ZO_CreateStringId("SUPERSTAR_CHAMPION_SKILL4NAME1", "Armure moyenne") -- No EN
-ZO_CreateStringId("SUPERSTAR_CHAMPION_SKILL6NAME1", "Exp CàC") -- No EN
+SafeAddString(SUPERSTAR_DESC_ENCHANT_REDUCE,						" et réduit le coût", 1)
+SafeAddString(SUPERSTAR_DESC_ENCHANT_REDUCE_SHORT,				" et", 1)
 
-SafeAddString(SUPERSTAR_MAELSTROM_WEAPON, "Maelström", 1)
-SafeAddString(SUPERSTAR_DESC_ENCHANT_MAX, " maximale", 1)
+SafeAddString(SUPERSTAR_IMPORT_ATTR_DISABLED,					"Incl. Attributs", 1)
+SafeAddString(SUPERSTAR_IMPORT_ATTR_ENABLED,						"Supppr. Attributs", 1)
+SafeAddString(SUPERSTAR_IMPORT_SP_DISABLED,						"Incl. Compétences", 1)
+SafeAddString(SUPERSTAR_IMPORT_SP_ENABLED,						"Supppr. Compétences", 1)
+SafeAddString(SUPERSTAR_IMPORT_CP_DISABLED,						"Incl. Points Champion", 1)
+SafeAddString(SUPERSTAR_IMPORT_CP_ENABLED,						"Supppr. Points Champion", 1)
+SafeAddString(SUPERSTAR_IMPORT_BUILD_OK,							"Build Valide, le voir !", 1)
+SafeAddString(SUPERSTAR_IMPORT_BUILD_NOK,							"Build Incorrect, Vérifiez votre Hash", 1)
+SafeAddString(SUPERSTAR_IMPORT_BUILD_LABEL,						"Importer un build : coller le hash", 1)
+SafeAddString(SUPERSTAR_IMPORT_MYBUILD,							"Mon Build", 1)
 
-SafeAddString(SUPERSTAR_DESC_ENCHANT_SEC, " secondes", 1)
-SafeAddString(SUPERSTAR_DESC_ENCHANT_SEC_SHORT, " secs", 1)
-
-SafeAddString(SUPERSTAR_DESC_ENCHANT_MAGICKA_DMG, " dégâts de Magie", 1)
-SafeAddString(SUPERSTAR_DESC_ENCHANT_MAGICKA_DMG_SHORT, " dégâts Magie", 1)
-
-SafeAddString(SUPERSTAR_DESC_ENCHANT_BASH, " Percussion", 1)
-SafeAddString(SUPERSTAR_DESC_ENCHANT_BASH_SHORT, " Percu", 1)
-
-SafeAddString(SUPERSTAR_DESC_ENCHANT_REDUCE, " et réduit le coût", 1)
-SafeAddString(SUPERSTAR_DESC_ENCHANT_REDUCE_SHORT, " et", 1)
+SafeAddString(SUPERSTAR_XML_SWITCH_PLACEHOLDER,					"Switchez d'armes pour la 2nde barre", 1)

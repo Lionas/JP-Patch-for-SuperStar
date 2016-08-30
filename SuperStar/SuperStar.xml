@@ -1605,7 +1605,7 @@
 		<TopLevelControl name="SuperStarXMLImport" inherits="ZO_RightPanelFootPrint" hidden="true">
 			<Controls>
 				
-				<Label name="$(parent)ImportLabel" font="ZoFontHeader4" horizontalAlignment="CENTER" text="SI_SUPERSTAR_IMPORT_MENU_TITLE">
+				<Label name="$(parent)ImportLabel" font="ZoFontHeader4" horizontalAlignment="CENTER" text="SUPERSTAR_IMPORT_MENU_TITLE">
 					<Dimensions x="250" />
 					<Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="25" offsetY="75" />
 				</Label>
@@ -1615,7 +1615,7 @@
 					<Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="25" offsetY="150" />
 				</Label>
 			
-				<Label name="$(parent)MyBuildTitle" font="ZoFontHeader4" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" text="My Build">
+				<Label name="$(parent)MyBuildTitle" font="ZoFontHeader4" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" text="SUPERSTAR_IMPORT_MYBUILD">
 					<Dimensions x="250" />
 					<Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="650" offsetY="50" />
 				</Label>
@@ -1652,7 +1652,7 @@
 					</Controls>
 				</Backdrop>
 				
-				<Label name="$(parent)ImportTitle" font="ZoFontHeader4" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" text="Import a build : paste the hash">
+				<Label name="$(parent)ImportTitle" font="ZoFontHeader4" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" text="SUPERSTAR_IMPORT_BUILD_LABEL">
 					<Dimensions x="350" />
 					<Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="300" offsetY="300" />
 				</Label>
@@ -1680,11 +1680,11 @@
 			</Controls>			
 		</TopLevelControl>
 		
-		<!-- SuperStar Favrites Scene (4th) -->
+		<!-- SuperStar Favorites Scene (4th) -->
 		<TopLevelControl name="SuperStarXMLFavorites" inherits="ZO_RightPanelFootPrint" hidden="true">
 			<Controls>
 				
-				<Label name="$(parent)FavoritesLabel" font="ZoFontHeader4" horizontalAlignment="CENTER" text="SI_SUPERSTAR_FAVORITES_MENU_TITLE">
+				<Label name="$(parent)FavoritesLabel" font="ZoFontHeader4" horizontalAlignment="CENTER" text="SUPERSTAR_FAVORITES_MENU_TITLE">
 					<Dimensions x="250" />
 					<Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="25" offsetY="75" />
 				</Label>
@@ -1747,28 +1747,15 @@
 			<Controls>
 				
 				<Label name="$(parent)Title" font="ZoFontHeader3" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" mouseEnabled="true">
-					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="50" />
+					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetY="100" />
 				</Label>
 				
-				<Label name="$(parent)Warning" font="ZoFontGameLarge" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" mouseEnabled="true" horizontalAlignment="CENTER">
-					<Dimensions x="800" />
-					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="230" />
+				<Label name="$(parent)Warning" font="ZoFontHeader2" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" mouseEnabled="true" horizontalAlignment="CENTER">
+					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetY="200" />
 				</Label>
 				
-				<Label name="$(parent)NewBuild" font="ZoFontHeader3" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" mouseEnabled="true" hidden="true" text="SUPERSTAR_XML_NEWBUILD">
-					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="-350" offsetY="300" />
-				</Label>
-				
-				<Label name="$(parent)NewBuildName" font="ZoFontHeader3" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED"  horizontalAlignment="CENTER" mouseEnabled="true">
-					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="-50" offsetY="300" />
-				</Label>
-				
-				<Label name="$(parent)NewBuildCP" font="ZoFontHeader3" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" mouseEnabled="true">
-					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="260" offsetY="300" />
-				</Label>
-				
-				<Label name="$(parent)NewBuildError" font="ZoFontHeader4">
-					<Anchor point="BOTTOM" offsetY="-150" />
+				<Label name="$(parent)SkillLines" font="ZoFontHeader2" color="FF0000" mouseEnabled="true" horizontalAlignment="CENTER">
+					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetY="250" />
 				</Label>
 				
 				<Button name="$(parent)Respec" font="ZoFontHeader4" verticalAlignment="CENTER" inherits="ZO_ButtonBehaviorClickSound" hidden="true" text="SUPERSTAR_XML_BUTTON_RESPEC">
@@ -1790,10 +1777,10 @@
 						disabled="EsoUI/Art/Buttons/ESO_buttonLarge_disabled.dds"
 					/>
 				
-					<Anchor point="BOTTOM" offsetY="-100" />
+					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetY="350" />
 					
 					<OnClicked>
-						SuperStar.chooseRespectType()
+						SuperStar_DoRespec()
 					</OnClicked>
 				</Button>
 				

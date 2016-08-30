@@ -2,7 +2,7 @@
 	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
 		<Category name="Super Star">
 			<Action name="SUPERSTAR_SHOW_PANEL">
-				<Down>SuperStar_ShowSuperStarPanel()</Down>
+				<Down>SuperStar_ToggleSuperStarPanel()</Down>
 			</Action>
 		</Category>
 	</Layer>

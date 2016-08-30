@@ -6,9 +6,9 @@
 
 ## Title: SuperStar
 ## Description: Search for a Superstar help you to be the SuperStar you ever wanted to be!
-## Version: 2.5
+## Version: 2.6
 ## Author: Ayantir
-## APIVersion: 100015
+## APIVersion: 100016
 ## SavedVariables: SUPERSTAR
 
 lib/LibStub/LibStub.lua

@@ -19,7 +19,7 @@ local strings = {
 	SUPERSTAR_CSA_RESPEC_INPROGRESS					= "振り直し中",
 	SUPERSTAR_CSA_RESPEC_TIME							= "この操作はおよそ <<1>> <<1[分]>>　かかります",
 
-	SUPERSTAR_TITLE										= "You are about to Respec your skills with the template : <<1>>",
+	SUPERSTAR_TITLE										= "テンプレートに従ってスキルを振り直します : <<1>>",
 	
 	SUPERSTAR_RESPEC_ERROR1								= "スキルポイントの振り直しができません, 不正なクラス",
 	SUPERSTAR_RESPEC_ERROR2								= "スキルポイントの振り直しができません, 十分なスキルポイントがない",
@@ -54,8 +54,8 @@ local strings = {
 	SUPERSTAR_XML_NEWBUILD								= "新しいビルド :",
 	SUPERSTAR_XML_BUTTON_RESPEC						= "振り直し",
 
-	SUPERSTAR_XML_IMPORT_EXPLAIN						= "Import others builds with this form\n\nBuilds can contain Champion points, Skill points and Attributes.",
-	SUPERSTAR_XML_FAVORITES_EXPLAIN					= "Favorites permits you to see and respec your builds quickly.\n\nPlease note that if you can respec your Champion points from SuperStar, Attributes and Skill points can only be respeced through shrines in your faction capital.",
+	SUPERSTAR_XML_IMPORT_EXPLAIN						= "このフォームで他のビルドをインポートします\n\nビルドはチャンピオンポイント、スキルポイント、能力を含むことができます",
+	SUPERSTAR_XML_FAVORITES_EXPLAIN					= "お気に入りでビルドの確認と振り直しを素早く行うことができます\n\nSuperStarからチャンピオンポイントを振りなおすことが可能な場合、能力とスキルポイントはあなたの種族の祠からのみ振りなおすことができます。",
 
 	SUPERSTAR_XML_SKILLPOINTS							= "スキルポイント",
 	SUPERSTAR_XML_CHAMPIONPOINTS						= "チャンピオンポイント",
@@ -80,16 +80,16 @@ local strings = {
 	SUPERSTAR_DESC_ENCHANT_REDUCE						= " と 削減",
 	SUPERSTAR_DESC_ENCHANT_REDUCE_SHORT				= " と　削減",
 	
-	SUPERSTAR_IMPORT_ATTR_DISABLED					= "Incl. 属性",
-	SUPERSTAR_IMPORT_ATTR_ENABLED						= "Rem. 属性",
-	SUPERSTAR_IMPORT_SP_DISABLED						= "Incl. スキルポイント",
-	SUPERSTAR_IMPORT_SP_ENABLED						= "Rem. スキルポイント",
-	SUPERSTAR_IMPORT_CP_DISABLED						= "Incl. チャンピオンポイント",
-	SUPERSTAR_IMPORT_CP_ENABLED						= "Rem. チャンピオンポイント",
+  SUPERSTAR_IMPORT_ATTR_DISABLED					= "能力を加える",
+	SUPERSTAR_IMPORT_ATTR_ENABLED						= "能力を外す",
+	SUPERSTAR_IMPORT_SP_DISABLED						= "スキルポイントを含む",
+	SUPERSTAR_IMPORT_SP_ENABLED						= "スキルポイントを外す",
+	SUPERSTAR_IMPORT_CP_DISABLED						= "チャンピオンポイントを加える",
+	SUPERSTAR_IMPORT_CP_ENABLED						= "チャンピオンポイントを外す",
 	SUPERSTAR_IMPORT_BUILD_OK							= "ビルドは正しい, 表示します!",
 	SUPERSTAR_IMPORT_BUILD_NOK							= "ビルドが不正, ハッシュをチェック",
 	
-	SUPERSTAR_IMPORT_BUILD_LABEL						= "ビルドをインポート : ハッシュを貼り付け",
+	SUPERSTAR_IMPORT_BUILD_LABEL						= "インポート:ハッシュを貼付",
 	SUPERSTAR_IMPORT_MYBUILD							= "マイビルド",
   
 	SUPERSTAR_XML_SWITCH_PLACEHOLDER					= "オフバー用に武器を切り替え",
